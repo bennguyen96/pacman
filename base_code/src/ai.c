@@ -35,16 +35,16 @@ void copy_state(state_t* dst, state_t* src){
 
     //Check for invincibility
     dst->Invincible = src->Invincible;
-    
+
     //Number of pellets left in level
     dst->Food = src->Food;
-    
+
     //Main level array
 	memcpy( dst->Level, src->Level, 29*28*sizeof(int) );
 
     //What level number are we on?
     dst->LevelNumber = src->LevelNumber;
-    
+
     //Keep track of how many points to give for eating ghosts
     dst->GhostsInARow = src->GhostsInARow;
 
@@ -55,26 +55,26 @@ void copy_state(state_t* dst, state_t* src){
     dst->Points = src->Points;
 
     //Remiaining Lives
-    dst->Lives = src->Lives;   
+    dst->Lives = src->Lives;
 
 }
 
 node_t* create_init_node( state_t* init_state ){
 	node_t * new_n = (node_t *) malloc(sizeof(node_t));
-	new_n->parent = NULL;	
+	new_n->parent = NULL;
 	new_n->priority = 0;
 	new_n->depth = 0;
 	new_n->num_childs = 0;
 	copy_state(&(new_n->state), init_state);
 	new_n->acc_reward =  get_reward( new_n );
 	return new_n;
-	
+
 }
 
 
 float heuristic( node_t* n ){
 	float h = 0;
-	
+
 	//FILL IN MISSING CODE
 
 	return h;
@@ -82,11 +82,11 @@ float heuristic( node_t* n ){
 
 float get_reward ( node_t* n ){
 	float reward = 0;
-	
+
 	//FILL IN MISSING CODE
 
 	float discount = pow(0.99,n->depth);
-   	
+
 	return discount * reward;
 }
 
@@ -99,7 +99,7 @@ bool applyAction(node_t* n, node_t** new_node, move_t action ){
 
     //FILL IN MISSING CODE
 
-    changed_dir = execute_move_t( &((*new_node)->state), action );	
+    changed_dir = execute_move_t( &((*new_node)->state), action );
 
 	return changed_dir;
 
@@ -121,20 +121,20 @@ move_t get_next_move( state_t init_state, int budget, propagation_t propagation,
 	unsigned generated_nodes = 0;
 	unsigned expanded_nodes = 0;
 	unsigned max_depth = 0;
-	
+
 
 
 	//Add the initial node
-	//node_t* n = create_init_node( &init_state );
-	
+	node_t* n = create_init_node( &init_state );
+
 	//Use the max heap API provided in priority_queue.h
-	//heap_push(&h,n);
-	
+	heap_push(&h,n);
+
 	//FILL IN THE GRAPH ALGORITHM
-	
-	
+
+
 	sprintf(stats, "Max Depth: %d Expanded nodes: %d  Generated nodes: %d\n",max_depth,expanded_nodes,generated_nodes);
-	
+	best_action = left;
 	if(best_action == left)
 		sprintf(stats, "%sSelected action: Left\n",stats);
 	if(best_action == right)
@@ -147,4 +147,3 @@ move_t get_next_move( state_t init_state, int budget, propagation_t propagation,
 	sprintf(stats, "%sScore Left %f Right %f Up %f Down %f",stats,best_action_score[left],best_action_score[right],best_action_score[up],best_action_score[down]);
 	return best_action;
 }
-

@@ -83,7 +83,7 @@ int main(int argc, char *argv[100]) {
     CheckScreenSize();              //Make sure screen is big enough
     CreateWindows(29, 28, 1, 1);    //Create the main and status windows
 
-    
+
 
     //If they specified a level to load
     if((argc > 1) && (strlen(argv[1]) > 1)) {
@@ -320,7 +320,7 @@ void DrawWindow() {
 * Returns:     none                                             *
 * Description: Gracefully end program                           *
 ****************************************************************/
-void ExitProgram(const char *message) {    
+void ExitProgram(const char *message) {
     endwin();                       //Uninitialize ncurses and destroy windows
     printf("%s\n", message);        //Display message
     exit(0);                        //End program, return 0
@@ -333,59 +333,73 @@ void ExitProgram(const char *message) {
 * Description: Get input from user and take appropriate action  *
 ****************************************************************/
 void GetInput() {
+    state_t fakestate;
+    fakestate->Loc=Loc;
+    fakestate->Dir=Dir;
+    fakestate->StartingPoints=StartingPoints;
+    fakestate->Invincible=Invincible;
+    fakestate->Food=Food;
+    fakestate->Level=Level;
+    fakestate->LevelNumber=LevelNumber;
+    fakestate->GhostsInARow=GhostsInARow;
+    fakestate->tleft=tleft;
+    fakestate->Points=Points;
+    fakestate->Lives=Lives;
 
-    int ch;                         //Key pushed
-    static int chtmp;               //Buffered key
-    int tmp;
+    //get_next_move(fakestate, 0, 0,"hello");
 
-    ch = getch();                   //Figure out which key is pressed
-
-    //If they are not pressing something, use previous input
-    if(ch == ERR) ch = chtmp;
-    chtmp = ch;
-
-    //Determine which button is pushed
-    switch (ch) {
-    case KEY_UP:    case 'w': case 'W':            //Move pacman up
-        if(Loc[4][0] <= 0) tmp = LEVEL_HEIGHT - 1;
-        else tmp = Loc[4][0] - 1;
-        if((Level[tmp][Loc[4][1]] != 1)
-        && (Level[tmp][Loc[4][1]] != 4))
-            { Dir[4][0] = -1; Dir[4][1] =  0; }
-        break;
-
-    case KEY_DOWN:  case 's': case 'S':            //Move pacman down
-        if(Loc[4][0] >= 28) tmp = 0;
-        else tmp = Loc[4][0] + 1;
-        if((Level[tmp][Loc[4][1]] != 1)
-        && (Level[tmp][Loc[4][1]] != 4))
-            { Dir[4][0] =  1; Dir[4][1] =  0; }
-        break;
-
-    case KEY_LEFT:  case 'a': case 'A':            //Move pacman left
-        if(Loc[4][1] <= 0) tmp = LEVEL_WIDTH - 1;
-        else tmp = Loc[4][1] - 1;
-        if((Level[Loc[4][0]][tmp] != 1)
-        && (Level[Loc[4][0]][tmp] != 4))
-            { Dir[4][0] =  0; Dir[4][1] = -1; }
-        break;
-
-    case KEY_RIGHT: case 'd': case 'D':            //Move pacman right
-        if(Loc[4][1] >= 27) tmp = 0;
-        else tmp = Loc[4][1] + 1;
-        if((Level[Loc[4][0]][tmp] != 1)
-        && (Level[Loc[4][0]][tmp] != 4))
-            { Dir[4][0] =  0; Dir[4][1] =  1; }
-        break;
-
-    case 'p': case 'P':                            //Pause game
-        PauseGame();
-        chtmp = getch();            //Update buffered input
-        break;
-
-    case 'q': case 'Q':                            //End program
-        ExitProgram(QUIT_MSG);
-        break;
+    // int ch;                         //Key pushed
+    // static int chtmp;               //Buffered key
+    // int tmp;
+    //
+    // ch = getch();                   //Figure out which key is pressed
+    //
+    // //If they are not pressing something, use previous input
+    // if(ch == ERR) ch = chtmp;
+    // chtmp = ch;
+    //
+    // //Determine which button is pushed
+    // switch (ch) {
+    // case KEY_UP:    case 'w': case 'W':            //Move pacman up
+    //     if(Loc[4][0] <= 0) tmp = LEVEL_HEIGHT - 1;
+    //     else tmp = Loc[4][0] - 1;
+    //     if((Level[tmp][Loc[4][1]] != 1)
+    //     && (Level[tmp][Loc[4][1]] != 4))
+    //         { Dir[4][0] = -1; Dir[4][1] =  0; }
+    //     break;
+    //
+    // case KEY_DOWN:  case 's': case 'S':            //Move pacman down
+    //     if(Loc[4][0] >= 28) tmp = 0;
+    //     else tmp = Loc[4][0] + 1;
+    //     if((Level[tmp][Loc[4][1]] != 1)
+    //     && (Level[tmp][Loc[4][1]] != 4))
+    //         { Dir[4][0] =  1; Dir[4][1] =  0; }
+    //     break;
+    //
+    // case KEY_LEFT:  case 'a': case 'A':            //Move pacman left
+    //     if(Loc[4][1] <= 0) tmp = LEVEL_WIDTH - 1;
+    //     else tmp = Loc[4][1] - 1;
+    //     if((Level[Loc[4][0]][tmp] != 1)
+    //     && (Level[Loc[4][0]][tmp] != 4))
+    //         { Dir[4][0] =  0; Dir[4][1] = -1; }
+    //     break;
+    //
+    // case KEY_RIGHT: case 'd': case 'D':            //Move pacman right
+    //     if(Loc[4][1] >= 27) tmp = 0;
+    //     else tmp = Loc[4][1] + 1;
+    //     if((Level[Loc[4][0]][tmp] != 1)
+    //     && (Level[Loc[4][0]][tmp] != 4))
+    //         { Dir[4][0] =  0; Dir[4][1] =  1; }
+    //     break;
+    //
+    // case 'p': case 'P':                            //Pause game
+    //     PauseGame();
+    //     chtmp = getch();            //Update buffered input
+    //     break;
+    //
+    // case 'q': case 'Q':                            //End program
+    //     ExitProgram(QUIT_MSG);
+    //     break;
 
     }
 }
@@ -437,7 +451,7 @@ void IntroScreen() {
 
     //Scroll Pacman to middle of screen
     for(a = 0; a < 13; a++) {
-        if(getch()!=ERR) return;    
+        if(getch()!=ERR) return;
         wattron(win, COLOR_PAIR(Pacman));
         mvwprintw(win, 8, a, " C");
         wrefresh(win);
@@ -743,7 +757,7 @@ void PauseGame() {
     mvwprintw(win, 13, 10, "*PAUSED*");
     mvwprintw(win, 14, 10, "********");
     wrefresh(win);
-    
+
     //And wait until key is pressed
     do {
         chtmp = getch();            //Get input
