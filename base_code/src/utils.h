@@ -17,7 +17,7 @@
 
 /**
  * Data structure containing the information about the game state
- * Variables have the same name as the global variables in pacman.c 
+ * Variables have the same name as the global variables in pacman.c
  * representing the state of the game.
  */
 struct state_s{
@@ -31,7 +31,7 @@ struct state_s{
     int GhostsInARow;                     //Keep track of how many points to give for eating ghosts
     int tleft;                            //How long left for invincibility
     int Points;                     //Initial points
-    int Lives;       
+    int Lives;
 };
 
 typedef struct state_s state_t;
@@ -48,7 +48,7 @@ typedef enum moves{
 } move_t;
 
 /**
- * Back Propagation type 
+ * Back Propagation type
  */
 typedef enum propagation{
 	max=0,

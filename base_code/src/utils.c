@@ -48,7 +48,7 @@ bool execute_move_t(state_t* state, move_t move) {
             { state->Dir[4][0] =  0; state->Dir[4][1] =  1; changed_direction = true;}
         break;
 
-    
+
 
     }
 
@@ -58,7 +58,7 @@ bool execute_move_t(state_t* state, move_t move) {
 
 	return changed_direction;
 
-	
+
 }
 
 /****************************************************************
@@ -83,17 +83,17 @@ void CheckCollisionSim(state_t* state) {
 
                 state->Points = state->Points + state->GhostsInARow * 20;    //Increase points by an increasing value
 
-                
-                state->GhostsInARow *= 2;               
+
+                state->GhostsInARow *= 2;
 
                 //Reset the ghost's position to the starting location
                 state->Loc[a][0] = state->StartingPoints[a][0]; state->Loc[a][1] = state->StartingPoints[a][1];
             }
 
             //Pacman is vulnerable, Pacman dies
-            else {        
+            else {
 
-                //Subtract one life 
+                //Subtract one life
                 state->Lives--;
 
                 //Reset Pacman's and ghosts' positions
@@ -108,7 +108,7 @@ void CheckCollisionSim(state_t* state) {
                 state->Dir[2][0] =  0; state->Dir[2][1] = -1;
                 state->Dir[3][0] =  0; state->Dir[3][1] =  1;
                 state->Dir[4][0] =  0; state->Dir[4][1] = -1;
-                
+
             }
         }
     }

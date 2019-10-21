@@ -17,4 +17,3 @@
 
 
 void DrawWindowState(state_t state);                         //Refresh display
-

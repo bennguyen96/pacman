@@ -1,5 +1,6 @@
 #ifndef __AI__
 #define __AI__
+#define MAX_MOVES 4
 
 #include <stdint.h>
 #include <unistd.h>

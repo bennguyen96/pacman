@@ -6,7 +6,7 @@
 * Please see file COPYING for details on licensing  *
 *       and redistribution of this program          *
 *                                                   *
-* Adapted by Nir Lipovetzky for COMP20003 (2019)    *  
+* Adapted by Nir Lipovetzky for COMP20003 (2019)    *
 *                                                   *
 ****************************************************/
 
@@ -108,7 +108,7 @@ int main(int argc, char *argv[100]) {
 	    print_usage();
 	    return 0;
 	}
-	
+
     int j = 0;
     srand( (unsigned)time( NULL ) );
 
@@ -118,7 +118,7 @@ int main(int argc, char *argv[100]) {
 
 
 
-    if (argc > 2 ) {	    
+    if (argc > 2 ) {
 		ai_run = true;
         if( strcmp(argv[2],"ai_pause")==0 ){
             ai_pause = true;
@@ -138,7 +138,7 @@ int main(int argc, char *argv[100]) {
 		}
 
 		sscanf (argv[4],"%d",&budget);
-				
+
 	}
 
     //If they specified a level to load
@@ -169,7 +169,7 @@ int main(int argc, char *argv[100]) {
         }
 
     }
-   
+
     //Game has ended, deactivate and end program
     ExitProgram(EXIT_MSG);
 
@@ -568,7 +568,7 @@ void send_action(move_t move) {
             { Dir[4][0] =  0; Dir[4][1] =  1; }
         break;
 
-    
+
 
     }
 }
@@ -620,7 +620,7 @@ void IntroScreen() {
 
     //Scroll Pacman to middle of screen
     for(a = 0; a < 13; a++) {
-        if(getch()!=ERR) return;    
+        if(getch()!=ERR) return;
         wattron(win, COLOR_PAIR(Pacman));
         mvwprintw(win, 8, a, " C");
         wrefresh(win);
@@ -735,7 +735,7 @@ void LoadLevel(char levelfile[100]) {
 }
 
 void update_current_state(){
- 
+
     //Location of Ghosts and Pacman
     memcpy( current_state.Loc, Loc, 5*2*sizeof(int) );
 
@@ -747,16 +747,16 @@ void update_current_state(){
 
     //Check for invincibility
     current_state.Invincible = Invincible;
-    
+
     //Number of pellets left in level
     current_state.Food = Food;
-    
+
     //Main level array
     memcpy( current_state.Level, Level, 29*28*sizeof(int) );
 
     //What level number are we on?
     current_state.LevelNumber=LevelNumber;
-    
+
     //Keep track of how many points to give for eating ghosts
     current_state.GhostsInARow = GhostsInARow;
 
@@ -767,7 +767,7 @@ void update_current_state(){
     current_state.Points = Points;
 
     //Remiaining Lives
-    current_state.Lives = Lives;   
+    current_state.Lives = Lives;
 
 }
 
@@ -791,7 +791,7 @@ void MainLoop() {
         MovePacman();    DrawWindow();    CheckCollision();
         MoveGhosts();    DrawWindow();    CheckCollision();
         if(Points > FreeLife) { Lives++; FreeLife *= 2;}
-        
+
          /**
 	     * AI execution mode
 	     */
@@ -807,19 +807,19 @@ void MainLoop() {
             /**
              * Execute the selected action
              */
-            send_action(selected_move);	
+            send_action(selected_move);
 
             if(ai_pause){
                 DrawWindow();
                 PauseGame();
             }
 
-	    		    
+
 	    }
 
         Delay();
 
-        
+
     } while (Food > 0);
 
     DrawWindow();                   //Redraw window and...
@@ -993,7 +993,7 @@ void PauseGame() {
     mvwprintw(win, 13, 10, "*PAUSED*");
     mvwprintw(win, 14, 10, "********");
     wrefresh(win);
-    
+
     //And wait until key is pressed
     do {
         chtmp = getch();            //Get input
