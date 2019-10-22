@@ -14,7 +14,7 @@ struct heap h;
 float get_reward( node_t* n );
 
 bool validAction(node_t* current, move_t move);
-void propagateBackToFirstAction(node_t* child);
+void propagateBackToFirstAction(node_t* child, propagation_t propagation);
 bool lostLife(node_t* child);
 
 /**
@@ -72,7 +72,6 @@ node_t* create_init_node( state_t* init_state ){
 	copy_state(&(new_n->state), init_state);
 	new_n->acc_reward =  get_reward( new_n );
 	return new_n;
-
 }
 
 
@@ -83,6 +82,9 @@ float heuristic( node_t* n ){
 	float g = 0;
 	//FILL IN MISSING CODE
 	node_t* parent = n->parent;
+	if (!parent) {
+		return h;
+	}
 	// only assigns i = 10 if pacman was not invincible in the previous state
 	// and consumed a fruit during a move to the current state
 	if (n->state.Invincible > parent->state.Invincible) {
@@ -104,7 +106,6 @@ float heuristic( node_t* n ){
 
 float get_reward ( node_t* n ){
 	float reward = 0;
-
 	// assigning parent pointer to compare points between states after move
 	node_t* parent = n->parent;
 	// if game is in first state, parent will be null, hence reward = 0
@@ -121,26 +122,31 @@ float get_reward ( node_t* n ){
 /**
  * Apply an action to node n and return a new node resulting from executing the action
 */
-bool applyAction(node_t* n, node_t** new_node, move_t action){
-
+bool applyAction(node_t* n, node_t** new_node, move_t action, propagation_t propagation){
 	bool changed_dir = false;
-
     //FILL IN MISSING CODE
-
 	(*new_node)->parent = n;
 	// change state of new node based on action passed
     changed_dir = execute_move_t( &((*new_node)->state), action);
+	// if (changed_dir) {
+	// 	n->num_childs++;
+	// }
 	(*new_node)->depth = n->depth + 1;
 	(*new_node)->priority = -1*((*new_node)->depth);
 	// calculates acc_reward by calling get_reward which compares reward
 	// between parent and current state
-	(*new_node)->acc_reward = n->acc_reward + get_reward(*new_node);
 	(*new_node)->move = action;
-
+	(*new_node)->acc_reward = n->acc_reward + get_reward(*new_node);
+	// if (propagation == avg) {
+	// 	if (children == 1) {
+	// 		n->acc_reward = (*new_node)->acc_reward;
+	// 	}
+	// 	else {
+	// 		n->acc_reward += (*new_node)->acc_reward;
+	// 	}
+	// }
 	return changed_dir;
-
 }
-
 
 /**
  * Find best action by building all possible paths up to budget
@@ -148,7 +154,7 @@ bool applyAction(node_t* n, node_t** new_node, move_t action){
  */
 
 move_t get_next_move( state_t init_state, int budget, propagation_t propagation, char* stats ){
-	move_t best_action = rand() % 4;
+	move_t best_action;
 	float best_action_score[4];
 	for(unsigned i = 0; i < 4; i++)
 	    best_action_score[i] = INT_MIN;
@@ -164,7 +170,6 @@ move_t get_next_move( state_t init_state, int budget, propagation_t propagation,
 	//Use the max heap API provided in priority_queue.h
 	// frontier <- priority queue containing 'node' only
 	heap_push(&h,n);
-
 	//FILL IN THE GRAPH ALGORITHM
 	// array of explored nodes - capped by budget
 	node_t** explored = (node_t**) malloc(budget*sizeof(node_t*));
@@ -175,15 +180,14 @@ move_t get_next_move( state_t init_state, int budget, propagation_t propagation,
 		// add it to the explored array and increment counter
 		explored[expanded_nodes++] = parent;
 		// if there is still budget then calculate new moves/nodes
-		if (expanded_nodes < 200) {
-			printf("%d\n", expanded_nodes);
+		if (expanded_nodes < budget) {
 			for (int move = 0; move < MAX_MOVES; move++) {
+				node_t* child = create_init_node(&parent->state);
 				// if the action is valid, apply it and calculate the new Score
 				// and propagate back to the first move performed (left/right/up/down)
-				if (validAction(parent, move)) {
-					node_t* child = create_init_node(&parent->state);
-					applyAction(parent, &child, move);
-					propagateBackToFirstAction(child);
+				if (applyAction(parent, &child, move, propagation)) {
+					parent->num_childs++;
+					propagateBackToFirstAction(child, propagation);
 					// if move leads to immediate death, do not consider
 					// otherwise add it to the queue
 					if (lostLife(child)) {
@@ -198,34 +202,79 @@ move_t get_next_move( state_t init_state, int budget, propagation_t propagation,
 						}
 					}
 				}
+				else {
+					best_action_score[move] = INT_MIN;
+					free(child);
+				}
 			}
+
+		}
+		else {
+			break;
 		}
 	}
+	// clearing heap once budget is used up as we cant explore those nodes
+	emptyPQ(&h);
 	// once the heap is empty and budget is met, iterate through explored array
 	// and find the nodes with depth == 1, find the move that was taken to get
 	// to that node, and update best_action_score
-	unsigned top_score = INT_MIN;
-	for (int i = 0; i < budget; i++) {
-		if (explored[i]->depth == 1) {
-			best_action_score[explored[i]->move] = explored[i]->acc_reward;
-			if (explored[i]->acc_reward >= top_score) {
-				top_score = explored[i]->acc_reward;
-				best_action = explored[i]->move;
+	float top_score = INT_MIN;
+	if (propagation == max) {
+		for (int i = 0; i < expanded_nodes; i++) {
+			if (explored[i]->depth == 1) {
+				best_action_score[explored[i]->move] = explored[i]->acc_reward;
+				if (explored[i]->acc_reward > top_score) {
+					top_score = explored[i]->acc_reward;
+					best_action = explored[i]->move;
+				}
+			}
+			free(explored[i]);
+		}
+		free(explored);
+	}
+	else {
+		node_t* current;
+		float added_reward;
+		int counter[4] = {0};
+		for (int i = 0; i < expanded_nodes; i++) {
+			current = explored[i];
+			if (current->num_childs == 0) {
+				added_reward = current->acc_reward;
+				while (current->parent->parent) {
+					current = current->parent;
+				}
+				if (counter[current->move] == 0) {
+					best_action_score[current->move] = added_reward;
+					counter[current->move]++;
+				}
+				else {
+					best_action_score[current->move] += added_reward;
+					counter[current->move]++;
+				}
 			}
 		}
+		for (int i = 0; i < MAX_MOVES; i++) {
+			if (counter[i] != 0) {
+				best_action_score[i] = best_action_score[i]/counter[i];
+			}
+			if (best_action_score[i] > top_score) {
+				top_score = best_action_score[i];
+				best_action = i;
+			}
+		}
+		for (int i = 0; i < expanded_nodes; i++) {
+			free(explored[i]);
+		}
+		free(explored);
 	}
-	// shit tiebreaker function
+	//tiebreaker function
 	while(true) {
 		int random = rand() % 4;
 		if (best_action_score[random] == top_score) {
 			best_action = random;
+			break;
 		}
-		break;
 	}
-
-	// pray this works
-	free(explored);
-
 	sprintf(stats, "Max Depth: %d Expanded nodes: %d  Generated nodes: %d\n",max_depth,expanded_nodes,generated_nodes);
 	if(best_action == left)
 		sprintf(stats, "%sSelected action: Left\n",stats);
@@ -239,44 +288,6 @@ move_t get_next_move( state_t init_state, int budget, propagation_t propagation,
 	sprintf(stats, "%sScore Left %f Right %f Up %f Down %f",stats,best_action_score[left],best_action_score[right],best_action_score[up],best_action_score[down]);
 	return best_action;
 }
-// // implementation of Dijkstra based on assignment spec pseudo-code
-// move_t Dijkstra(node_t* start, unsigned budget) {
-// 	//node_t* temp = start;
-// 	// malloc space for explored array - capped by budget
-// 	node_t** explored = (node_t**) malloc(budget*sizeof(node_t*));
-// 	// counter for explored array to help with insertion
-// 	int counter = 0;
-// 	// while frontier/heap is not emptyPQ
-// 	while (h.count) {
-// 		// pop the highest priority node off the queue
-// 		node_t* parent = heap_delete(start);
-// 		// add it to the explored array and increment counter
-// 		explored[counter++] = parent;
-// 		// if there is still budget then calculate new moves/nodes
-// 		if (counter < budget) {
-// 			for (move_t move = 0; move < MAX_MOVES; move++) {
-// 				// if the action is valid, apply it and calculate the new Score
-// 				// and propagate back to the first move performed (left/right/up/down)
-// 				if (validAction(parent, move)) {
-// 					node_t* child = create_init_node(parent.state);
-// 					applyAction(parent, &child, move);
-// 					propagateBackToFirstAction(child);
-// 					// if move leads to immediate death, do not consider
-// 					// otherwise add it to the queue
-// 					if lostLife(child) {
-// 						free(child);
-// 					}
-// 					else {
-// 						heap_push(&h, child);
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-// 	// pray this works
-// 	free(explored);
-// 	return best_action;
-// }
 
 // checks for valid actions for Dijkstra node generation
 bool validAction(node_t* current, move_t move) {
@@ -292,15 +303,17 @@ bool lostLife(node_t* child) {
 	return child->state.Lives < parent->state.Lives;
 }
 //
-void propagateBackToFirstAction(node_t* child) {
+void propagateBackToFirstAction(node_t* child, propagation_t propagation) {
 	node_t* current = child;
 	float acc_reward = child->acc_reward;
-	// if (propagation == 0) {
-		while (current->parent->parent) {
-			if (current->parent->acc_reward > acc_reward) {
-				acc_reward = current->parent->acc_reward;
+	// will only propagate via this function if == max
+	if (propagation == max) {
+			while (current->parent->parent) {
+				if (current->parent->acc_reward > acc_reward) {
+					acc_reward = current->parent->acc_reward;
+				}
+				current = current->parent;
 			}
-			current = current->parent;
-		}
-		current->acc_reward = acc_reward;
+			current->acc_reward = acc_reward;
+	}
 }
