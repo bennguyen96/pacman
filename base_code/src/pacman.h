@@ -6,6 +6,7 @@
 #define LEVELS_FILE DATAROOTDIR "/Levels/level__.dat"
 
 #include "utils.h"
+#include <time.h>
 
 #define EXIT_MSG "Good bye!"
 #define END_MSG "Game Over"

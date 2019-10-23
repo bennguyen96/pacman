@@ -14,7 +14,8 @@ struct heap h;
 float get_reward( node_t* n );
 
 bool validAction(node_t* current, move_t move);
-void propagateBackToFirstAction(node_t* child, propagation_t propagation);
+void propagateMaxToFirstAction(node_t* child);
+void propagateAvgToFirstAction(node_t* child);
 bool lostLife(node_t* child);
 
 /**
@@ -128,9 +129,9 @@ bool applyAction(node_t* n, node_t** new_node, move_t action, propagation_t prop
 	(*new_node)->parent = n;
 	// change state of new node based on action passed
     changed_dir = execute_move_t( &((*new_node)->state), action);
-	// if (changed_dir) {
-	// 	n->num_childs++;
-	// }
+	if (changed_dir) {
+		n->num_childs++;
+	}
 	(*new_node)->depth = n->depth + 1;
 	(*new_node)->priority = -1*((*new_node)->depth);
 	// calculates acc_reward by calling get_reward which compares reward
@@ -154,6 +155,9 @@ bool applyAction(node_t* n, node_t** new_node, move_t action, propagation_t prop
  */
 
 move_t get_next_move( state_t init_state, int budget, propagation_t propagation, char* stats ){
+	// code segment from anhvir's github for calculating search time
+	clock_t start= clock();
+
 	move_t best_action;
 	float best_action_score[4];
 	for(unsigned i = 0; i < 4; i++)
@@ -186,14 +190,20 @@ move_t get_next_move( state_t init_state, int budget, propagation_t propagation,
 				// if the action is valid, apply it and calculate the new Score
 				// and propagate back to the first move performed (left/right/up/down)
 				if (applyAction(parent, &child, move, propagation)) {
-					parent->num_childs++;
-					propagateBackToFirstAction(child, propagation);
+					if (propagation == max) {
+						propagateMaxToFirstAction(child);
+					}
+					if (propagation == avg) {
+						propagateAvgToFirstAction(child);
+					}
 					// if move leads to immediate death, do not consider
 					// otherwise add it to the queue
 					if (lostLife(child)) {
+						parent->num_childs--;
 						free(child);
 					}
 					else {
+
 						heap_push(&h, child);
 						// update amount of nodes generated and max depth
 						generated_nodes++;
@@ -207,7 +217,6 @@ move_t get_next_move( state_t init_state, int budget, propagation_t propagation,
 					free(child);
 				}
 			}
-
 		}
 		else {
 			break;
@@ -219,7 +228,7 @@ move_t get_next_move( state_t init_state, int budget, propagation_t propagation,
 	// and find the nodes with depth == 1, find the move that was taken to get
 	// to that node, and update best_action_score
 	float top_score = INT_MIN;
-	if (propagation == max) {
+	// if (propagation == max) {
 		for (int i = 0; i < expanded_nodes; i++) {
 			if (explored[i]->depth == 1) {
 				best_action_score[explored[i]->move] = explored[i]->acc_reward;
@@ -231,43 +240,8 @@ move_t get_next_move( state_t init_state, int budget, propagation_t propagation,
 			free(explored[i]);
 		}
 		free(explored);
-	}
-	else {
-		node_t* current;
-		float added_reward;
-		int counter[4] = {0};
-		for (int i = 0; i < expanded_nodes; i++) {
-			current = explored[i];
-			if (current->num_childs == 0) {
-				added_reward = current->acc_reward;
-				while (current->parent->parent) {
-					current = current->parent;
-				}
-				if (counter[current->move] == 0) {
-					best_action_score[current->move] = added_reward;
-					counter[current->move]++;
-				}
-				else {
-					best_action_score[current->move] += added_reward;
-					counter[current->move]++;
-				}
-			}
-		}
-		for (int i = 0; i < MAX_MOVES; i++) {
-			if (counter[i] != 0) {
-				best_action_score[i] = best_action_score[i]/counter[i];
-			}
-			if (best_action_score[i] > top_score) {
-				top_score = best_action_score[i];
-				best_action = i;
-			}
-		}
-		for (int i = 0; i < expanded_nodes; i++) {
-			free(explored[i]);
-		}
-		free(explored);
-	}
-	//tiebreaker function
+
+	// tiebreaker function
 	while(true) {
 		int random = rand() % 4;
 		if (best_action_score[random] == top_score) {
@@ -275,6 +249,7 @@ move_t get_next_move( state_t init_state, int budget, propagation_t propagation,
 			break;
 		}
 	}
+
 	sprintf(stats, "Max Depth: %d Expanded nodes: %d  Generated nodes: %d\n",max_depth,expanded_nodes,generated_nodes);
 	if(best_action == left)
 		sprintf(stats, "%sSelected action: Left\n",stats);
@@ -286,34 +261,62 @@ move_t get_next_move( state_t init_state, int budget, propagation_t propagation,
 		sprintf(stats, "%sSelected action: Down\n",stats);
 
 	sprintf(stats, "%sScore Left %f Right %f Up %f Down %f",stats,best_action_score[left],best_action_score[right],best_action_score[up],best_action_score[down]);
+
+	// code segment from anhvir's github for calculating search time
+	double secs = ((double) (clock() - start)) / CLOCKS_PER_SEC;
+	// updating game totals
+	if (max_depth > game_max_depth) {
+		game_max_depth = max_depth;
+	}
+	game_gen_nodes += generated_nodes;
+	game_exp_nodes += expanded_nodes;
+	if (top_score > game_max_value) {
+		game_max_value = top_score;
+	}
+	total_search_time += secs;
+
 	return best_action;
 }
 
-// checks for valid actions for Dijkstra node generation
-bool validAction(node_t* current, move_t move) {
-	state_t* temp = (state_t*) malloc(sizeof(state_t));
-	copy_state(temp, &current->state);
-	bool valid = execute_move_t(temp, move);
-	free(temp);
-	return valid;
-}
 // checks if life has been lost between states
 bool lostLife(node_t* child) {
 	node_t* parent = child->parent;
 	return child->state.Lives < parent->state.Lives;
 }
 //
-void propagateBackToFirstAction(node_t* child, propagation_t propagation) {
+void propagateMaxToFirstAction(node_t* child) {
 	node_t* current = child;
-	float acc_reward = child->acc_reward;
-	// will only propagate via this function if == max
-	if (propagation == max) {
-			while (current->parent->parent) {
-				if (current->parent->acc_reward > acc_reward) {
-					acc_reward = current->parent->acc_reward;
-				}
-				current = current->parent;
-			}
-			current->acc_reward = acc_reward;
+	float acc_reward = current->acc_reward;
+	while (current->parent->parent) {
+		if (current->parent->acc_reward > acc_reward) {
+			acc_reward = current->parent->acc_reward;
+		}
+		current = current->parent;
+	}
+	current->acc_reward = acc_reward;
+}
+
+void propagateAvgToFirstAction(node_t* child) {
+	node_t* current = child;
+	// when new child node is created, we get the parents total acc_reward of the parent (acc_reward * old_num_childs)
+	// we add the acc_reward of the new child, and divide by new_num_childs
+	// parents_new_reward = (old_reward * old_num_childs) + child_contribution / new_num_childs
+	float new_contribution = child->acc_reward;
+	float old_contribution = 0;
+	float parent_old_contribution = current->parent->acc_reward;
+	if (!child->parent) {
+		current->parent->acc_reward = (current->parent->acc_reward * (current->parent->num_childs - 1) - old_contribution + new_contribution) / (current->parent->num_childs);
+		current = current->parent;
+		old_contribution = parent_old_contribution;
+		new_contribution = current->acc_reward;
+	// here we are updating the new avg up the tree, so the num_child will remain the same
+	// we are keeping track of old contribution of the parent so we can
+		while (current->parent->parent) {
+			parent_old_contribution = current->parent->acc_reward;
+			current->parent->acc_reward = (current->parent->acc_reward * (current->parent->num_childs) - old_contribution + new_contribution) / (current->parent->num_childs);
+			current = current->parent;
+			old_contribution = parent_old_contribution;
+			new_contribution = current->acc_reward;
+		}
 	}
 }

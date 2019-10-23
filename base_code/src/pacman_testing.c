@@ -58,7 +58,7 @@ char LevelFile[] = LEVELS_FILE;     //Locations of default levels
 int FreeLife = 1000;                //Starting points for free life
 int Points = 0;                     //Initial points
 int Lives = 3;                      //Number of lives you start with
-int SpeedOfGame = 175;              //How much of a delay is in the game
+int SpeedOfGame = 175/SPEED_FACTOR;              //How much of a delay is in the game
 
 //Windows used by ncurses
 WINDOW * win;
@@ -83,6 +83,7 @@ int game_exp_nodes = 0;
 int game_max_value = 0;
 double total_search_time = 0;
 double exp_nodes_sec = 0;
+double ai_time;
 
 int budget=0; //Max budget expanded nodes Dijkstra
 bool ai_run = false; //Run AI
@@ -210,7 +211,7 @@ void CheckCollision() {
                 GhostsInARow *= 2;
 
                 wrefresh(win);      //Update display
-                usleep(1000000);    //and pause for a second
+                usleep(1000000/SPEED_FACTOR);   //and pause for a second
 
                 //Reset the ghost's position to the starting location
                 Loc[a][0] = StartingPoints[a][0]; Loc[a][1] = StartingPoints[a][1];
@@ -798,7 +799,7 @@ void update_current_state(){
 * Description: Control the main execution of the game           *
 ****************************************************************/
 void MainLoop() {
-
+    struct timeb t_ai_start, t_ai_end;
     DrawWindow();                    //Draw the screen
     wrefresh(win); wrefresh(status); //Refresh it just to make sure
     usleep(1000000);                 //Pause for a second so they know they're about to play
@@ -821,8 +822,10 @@ void MainLoop() {
             /**
              * ****** HERE IS WHERE YOUR SOLVER IS CALLED
              */
+            ftime(&t_ai_start);
             move_t selected_move = get_next_move( current_state, budget, propagation, ai_stats );
-
+            ftime(&t_ai_end);
+            ai_time += (double)(t_ai_end.time - t_ai_start.time) + (double)(t_ai_end.millitm - t_ai_start.millitm)/1000;
             /**
              * Execute the selected action
              */
@@ -953,7 +956,7 @@ void MoveGhosts() {
 ****************************************************************/
 void MovePacman() {
 
-    static int itime = 0;
+    static struct timeb itime, t_current;
 
     //Switch sides? (Transport to other side of screen)
          if((Loc[4][0] ==  0) && (Dir[4][0] == -1)) Loc[4][0] = 28;
@@ -981,15 +984,20 @@ void MovePacman() {
             Food--;
             break;
         case 3:    //PowerUp
+            ai_time = 0.0;
             Level[Loc[4][0]][Loc[4][1]] = 0;
             Invincible = 1;
             if(GhostsInARow == 0) GhostsInARow = 1;
-            itime = time(0);
+            ftime(&itime);
             break;
     }
 
     //Is he invincible?
-    if(Invincible == 1)  tleft = (11 - LevelNumber - time(0) + itime);
+    ftime(&t_current);
+    if(Invincible == 1) { tleft = ((11.0 - (double)LevelNumber)/SPEED_FACTOR + ai_time
+	       - (t_current.time - itime.time + (double)(t_current.millitm
+               - itime.millitm)/1000.0))*SPEED_FACTOR;
+    }
 
     //Is invincibility up yet?
     if(tleft < 0) { Invincible = 0; GhostsInARow = 0; tleft = 0; }
